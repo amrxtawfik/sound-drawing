@@ -1,74 +1,198 @@
 <!DOCTYPE html>
-<html lang="en" data-palette="night">
+<html lang="ar" data-palette="night" data-skin="hashiya">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B0C17">
-<title>Sound drawing · دواير</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-title" content="دواير">
+<title>دواير</title>
+<script>/* the design is chosen before anything paints, so nothing jumps */
+(function () { var q = new URLSearchParams(location.search).get('skin'), s = null; try { s = JSON.parse(localStorage.getItem('sound-drawing') || '{}'); } catch (e) { s = {}; }
+  var k = /^(hashiya|asturlab|sleeve)$/.test(q || '') ? q : (s.skin || 'hashiya'); document.documentElement.dataset.skin = k;
+  document.documentElement.lang = k === 'sleeve' ? 'en' : 'ar'; document.documentElement.dataset.palette = s.palette || 'night'; })();
+</script>
 <style>
-:root{--bg:#0B0C17;--fg:#E9DFC6;--dim:rgba(233,223,198,.55);--line:rgba(233,223,198,.16);--chip:rgba(11,12,23,.62);--on:#E9DFC6;--onfg:#0B0C17;--accent:#4FC1B9}
-:root[data-palette=bone]{--bg:#EFE7D8;--fg:#1B1A17;--dim:rgba(27,26,23,.55);--line:rgba(27,26,23,.16);--chip:rgba(239,231,216,.72);--on:#1B1A17;--onfg:#EFE7D8;--accent:#C8431F}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-[hidden]{display:none!important}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden;touch-action:manipulation;
-  font:15px/1.35 ui-sans-serif,system-ui,-apple-system,"SF Arabic","Segoe UI",sans-serif}
+@font-face{font-family:Amiri;src:url(fonts/amiri-400.woff2) format('woff2');font-weight:400;font-display:block}
+@font-face{font-family:Amiri;src:url(fonts/amiri-700.woff2) format('woff2');font-weight:700;font-display:block}
+@font-face{font-family:Amiri;src:url(fonts/amiri-400i.woff2) format('woff2');font-weight:400;font-style:italic;font-display:block}
+@font-face{font-family:'Reem Kufi';src:url(fonts/reemkufi.woff2) format('woff2');font-weight:400 700;font-display:block}
+@font-face{font-family:Markazi;src:url(fonts/markazi.woff2) format('woff2');font-weight:400 700;font-display:block}
+@font-face{font-family:Newsreader;src:url(fonts/newsreader-i.woff2) format('woff2');font-weight:200 800;font-style:italic;font-display:block}
+@font-face{font-family:Hanken;src:url(fonts/hanken.woff2) format('woff2');font-weight:100 900;font-display:block}
+
+:root{--bg:#0B0C17;--verm:#E0573A;--sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);--sal:env(safe-area-inset-left);--sar:env(safe-area-inset-right);
+  --lvl:0;--pc:0deg;--inset-t:0;--inset-r:0;--inset-b:0;--inset-l:0}
+:root[data-palette=bone]{--bg:#EFE7D8;--verm:#C8431F}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0}
+html,body{height:100%;background:var(--bg);overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 #view{position:fixed;inset:0;display:block}
-.chrome{position:fixed;left:0;right:0;display:flex;justify-content:center;gap:8px;padding:0 12px;transition:opacity .6s ease;pointer-events:none}
-.chrome>*{pointer-events:auto}
-body.idle .chrome{opacity:0}
-body.idle .chrome>*{pointer-events:none}
-.top{top:max(12px,env(safe-area-inset-top));justify-content:space-between;align-items:flex-start}
-.bottom{bottom:max(14px,env(safe-area-inset-bottom));flex-wrap:wrap}
-#status{font:500 12px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;color:var(--dim);padding:10px 4px;max-width:40vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#lenses{display:flex;border:1px solid var(--line);border-radius:999px;background:var(--chip);padding:3px}
-#lenses button{border:0;background:none;color:var(--dim);border-radius:999px;padding:6px 14px 5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;min-width:64px}
-#lenses button b{font:500 19px/1.1 "SF Arabic","Geeza Pro",system-ui,sans-serif}
-#lenses button i{font:500 9.5px/1.4 ui-monospace,Menlo,monospace;font-style:normal;letter-spacing:.14em;text-transform:uppercase}
-#lenses button[aria-pressed=true]{background:var(--on);color:var(--onfg)}
-.spacer{width:40vw;max-width:140px}
-.btn{border:1px solid var(--line);background:var(--chip);color:var(--fg);border-radius:999px;min-height:42px;padding:0 16px;font:500 14px/1 inherit;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
-.btn input{display:none}
-.btn.icon{width:42px;padding:0;justify-content:center}
-.btn.main{background:var(--on);color:var(--onfg);border-color:var(--on)}
-.btn.on{background:var(--accent);border-color:var(--accent);color:#0B0C17}
-.btn[aria-pressed=false]{color:var(--dim)}
-.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
-#caption{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(14px,env(safe-area-inset-bottom)) + 64px);width:min(92vw,640px);text-align:center;
-  opacity:0;transition:opacity 1.2s ease;pointer-events:none}
+button,label.ctl{appearance:none;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer;min-height:44px;display:inline-flex;align-items:center;justify-content:center;position:relative}
+input[type=file]{display:none}
+.chrome{position:fixed;color:var(--rest);transition:opacity .4s ease}
+body.idle .chrome{opacity:0;pointer-events:none}
+body:not(.idle) .chrome{transition-duration:.15s}
+.empty{visibility:hidden}
+.w{white-space:nowrap}
+#caption{position:fixed;pointer-events:none;opacity:0;transition:opacity .6s ease}
 #caption.on{opacity:1}
-#capAr{display:block;font:500 17px/1.5 "SF Arabic","Geeza Pro",system-ui,sans-serif;direction:rtl}
-#capEn{display:block;font:400 13.5px/1.4 ui-sans-serif,system-ui,sans-serif;color:var(--dim);margin-top:2px}
-body.idle #caption{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 8px)}
-@media (max-width:620px){
-  .top{flex-direction:column;align-items:center;gap:2px}
-  .spacer{display:none}
-  #status{order:2;max-width:90vw;padding:6px 4px;font-size:11px}
-  #lenses button{min-width:58px;padding:6px 11px 5px}
-  .btn{padding:0 13px;min-height:42px}.btn.icon{width:42px}
-  .bottom{gap:6px}
+#capText{text-wrap:pretty}
+.nq{display:none}
+svg.nq{fill:none;stroke:currentColor;stroke-width:1;overflow:visible}
+.ring,.limb,.index,.num{display:none}
+.verm{color:var(--verm)!important}
+
+/* ============ الهامش  the margin ============ */
+[data-skin=hashiya]{--rest:#8E8873;--active:#EFE7D8;--hair:#23253A}
+[data-skin=hashiya][data-palette=bone]{--rest:#7A7263;--active:#14130F;--hair:#D8CDB8}
+[data-skin=hashiya] body{font-family:Amiri,serif}
+[data-skin=hashiya] .chrome{direction:rtl}
+[data-skin=hashiya] .top{top:calc(var(--sat) + 10px);right:calc(var(--sar) + 14px);left:calc(var(--sal) + 14px);display:flex;justify-content:space-between;align-items:flex-start}
+[data-skin=hashiya] #lenses{display:flex;gap:6px}
+[data-skin=hashiya] #lenses button{width:64px;flex-direction:column;font-size:22px;line-height:1.2;padding-top:2px}
+[data-skin=hashiya] #lenses button .w{font-weight:400;transition:color .3s}
+[data-skin=hashiya] #lenses button[aria-pressed=true] .w{color:var(--active);font-weight:700}
+[data-skin=hashiya] #lenses .nq{display:block;width:6px;height:8px;color:var(--verm);opacity:0;transition:opacity .35s;margin-top:1px}
+[data-skin=hashiya] #lenses .nq{fill:currentColor;stroke:none}
+[data-skin=hashiya] #lenses button[aria-pressed=true] .nq{opacity:1}
+[data-skin=hashiya] #status{font-size:14px;line-height:44px;color:var(--rest);max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
+[data-skin=hashiya] #status i{font-style:italic}
+[data-skin=hashiya] .bottom{bottom:calc(var(--sab) + 12px);right:calc(var(--sar) + 14px);left:calc(var(--sal) + 14px);display:flex;justify-content:space-between;align-items:baseline}
+[data-skin=hashiya] .g{display:flex}
+[data-skin=hashiya] .main button,[data-skin=hashiya] .main label{width:52px;font-size:18px}
+[data-skin=hashiya] #capBtn{font-size:16px}
+[data-skin=hashiya] .aux button{width:46px;font-size:15.5px}
+[data-skin=hashiya] .bottom [aria-pressed=true] .w,[data-skin=hashiya] #micBtn.on .w{color:var(--active)}
+[data-skin=hashiya] #micBtn{width:62px!important;gap:7px;color:var(--active)}
+[data-skin=hashiya] #micBtn .nq{display:block;width:8px;height:10px;color:var(--rest)}
+[data-skin=hashiya] #micBtn.on .nq{color:var(--verm);opacity:calc(.45 + .55 * var(--lvl))}
+[data-skin=hashiya] #micBtn.on .nq{fill:currentColor;stroke:none}
+[data-skin=hashiya] #caption{direction:rtl;right:calc(var(--sar) + 18px);bottom:calc(var(--sab) + 76px);width:min(300px,calc(100vw - 36px));
+  border-right:1px solid var(--hair);padding-right:12px;font:400 20px/1.75 Amiri,serif;color:var(--active);
+  text-shadow:0 0 6px var(--bg),0 0 6px var(--bg),0 0 3px var(--bg)}
+@media (min-width:900px) and (orientation:landscape){
+  [data-skin=hashiya]{--inset-r:200}
+  [data-skin=hashiya] .top{left:auto;width:200px;right:calc(var(--sar));flex-direction:column;align-items:flex-start;padding-right:24px;border-right:0}
+  [data-skin=hashiya] #lenses{flex-direction:column;gap:2px}
+  [data-skin=hashiya] #lenses button{width:150px;flex-direction:row;gap:10px;font-size:24px;justify-content:flex-start}
+  [data-skin=hashiya] #lenses .nq{order:-1;margin:0}
+  [data-skin=hashiya] #status{position:fixed;top:calc(var(--sat) + 10px);left:calc(var(--sal) + 20px);max-width:30vw}
+  [data-skin=hashiya] .bottom{left:auto;width:200px;right:calc(var(--sar));padding-right:24px;flex-direction:column;align-items:flex-start;gap:14px}
+  [data-skin=hashiya] .g{flex-direction:column;align-items:flex-start}
+  [data-skin=hashiya] .g button,[data-skin=hashiya] .g label{width:150px!important;justify-content:flex-start;min-height:44px}
+  [data-skin=hashiya] #capBtn{font-size:17px}
+  [data-skin=hashiya] .main button,[data-skin=hashiya] .main label{font-size:19px}
+  [data-skin=hashiya] .aux button{font-size:17px}
+  [data-skin=hashiya] #caption{right:calc(var(--sar) + 24px);width:176px;bottom:auto;top:42%;transform:translateY(-50%);font-size:19px}
+  [data-skin=hashiya] .margin-rule{display:block;position:fixed;top:0;bottom:0;right:calc(var(--sar) + 200px);width:1px;background:var(--hair)}
+}
+.margin-rule{display:none}
+
+/* ============ أسطرلاب  the astrolabe ============ */
+[data-skin=asturlab]{--rest:#7F7558;--active:#D9C08C;--hair:#2C2B36;--inset-t:44;--inset-b:68;--limb:calc(var(--sab) + 54px)}
+[data-skin=asturlab][data-palette=bone]{--rest:#8A7A5A;--active:#3A2E18;--hair:#CFC2A4}
+[data-skin=asturlab] body{font-family:'Reem Kufi',sans-serif}
+[data-skin=asturlab] .chrome{direction:rtl}
+[data-skin=asturlab] .top{top:calc(var(--sat) + 6px);left:0;right:0;display:flex;flex-direction:column;align-items:center}
+[data-skin=asturlab] #lenses{display:flex;border-bottom:1px solid var(--hair);padding:0 6px}
+[data-skin=asturlab] #lenses button{width:78px;font-size:18px;font-weight:500;letter-spacing:0;flex-direction:column;padding-top:8px}
+[data-skin=asturlab] #lenses button+button::before{content:"";position:absolute;right:0;bottom:0;height:9px;width:1px;background:var(--hair)}
+[data-skin=asturlab] #lenses button[aria-pressed=true]{color:var(--active)}
+[data-skin=asturlab] #lenses .index{display:block;position:absolute;top:0;width:8px;height:6px;color:var(--active);opacity:0;transition:opacity .35s}
+[data-skin=asturlab] #lenses button[aria-pressed=true] .index{opacity:1}
+[data-skin=asturlab] #status{font:400 15px/30px Markazi,serif;color:var(--rest);max-width:80vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-skin=asturlab] .limb{display:block;position:fixed;left:0;right:0;bottom:calc(var(--limb) - 10px);height:10px;pointer-events:none}
+[data-skin=asturlab] .limb i{position:absolute;inset:0;border-top:1px solid var(--hair);
+  background:repeating-linear-gradient(to right,var(--hair) 0 1px,transparent 1px 30px) top/100% 9px no-repeat,repeating-linear-gradient(to right,var(--hair) 0 1px,transparent 1px 6px) top/100% 5px no-repeat;
+  background-position:center top}
+[data-skin=asturlab] .limb b{position:absolute;inset:0;border-top:1px solid var(--active);
+  background:repeating-linear-gradient(to right,var(--active) 0 1px,transparent 1px 30px) top/100% 9px no-repeat,repeating-linear-gradient(to right,var(--active) 0 1px,transparent 1px 6px) top/100% 5px no-repeat;
+  background-position:center top;clip-path:inset(0 calc(50% - 50% * var(--lvl)) 0 calc(50% - 50% * var(--lvl)));opacity:.85}
+[data-skin=asturlab] .bottom{bottom:var(--limb);left:calc(var(--sal) + 6px);right:calc(var(--sar) + 6px);display:grid;grid-template-columns:1fr 76px 1fr;align-items:end}
+[data-skin=asturlab] .g{display:flex;padding-bottom:6px}
+[data-skin=asturlab] .main{grid-column:1;justify-content:flex-start}
+[data-skin=asturlab] .aux{grid-column:3;justify-content:flex-end}
+[data-skin=asturlab] .g button,[data-skin=asturlab] .g label{font-size:15px;font-weight:400;min-width:44px;padding:0 3px}
+[data-skin=asturlab] .main button,[data-skin=asturlab] .main label{min-width:44px;font-size:16px}
+[data-skin=asturlab] #capBtn{font-size:15px}
+[data-skin=asturlab] .g [aria-pressed=true]{color:var(--active)}
+[data-skin=asturlab] #micBtn{position:fixed;left:50%;margin-left:-38px;width:76px;height:78px;bottom:calc(var(--limb) - 49px);flex-direction:column;justify-content:flex-start;color:var(--rest)}
+[data-skin=asturlab] #micBtn .ring{display:block;width:58px;height:58px;color:inherit}
+[data-skin=asturlab] #micBtn .ring circle{fill:var(--bg);stroke:currentColor;stroke-width:1}
+[data-skin=asturlab] #micBtn .ring .ticks line{stroke:currentColor;stroke-width:1}
+[data-skin=asturlab] #micBtn .ring .needle{transform-origin:29px 29px;transform:rotate(var(--pc));stroke:currentColor;stroke-width:1.5;stroke-linecap:round;transition:stroke .3s}
+[data-skin=asturlab] #micBtn .ring .hub{fill:currentColor}
+[data-skin=asturlab] #micBtn.on{color:var(--active)}
+[data-skin=asturlab] #micBtn.on .needle{stroke:var(--verm)}
+[data-skin=asturlab] #micBtn .w{font-size:13px;line-height:1;margin-top:3px}
+[data-skin=asturlab] #caption{direction:rtl;right:calc(var(--sar) + 18px);bottom:calc(var(--limb) + 62px);width:min(310px,calc(100vw - 36px));
+  font:400 19px/1.6 Markazi,serif;color:var(--active);text-shadow:0 0 6px var(--bg),0 0 6px var(--bg)}
+@media (min-width:900px) and (orientation:landscape){
+  [data-skin=asturlab]{--inset-t:92;--inset-b:76}
+  [data-skin=asturlab] #lenses button{width:96px;font-size:20px}
+  [data-skin=asturlab] .g button,[data-skin=asturlab] .g label{font-size:17px;min-width:58px}
+  [data-skin=asturlab] .bottom{grid-template-columns:1fr 90px 1fr;left:calc(var(--sal) + 40px);right:calc(var(--sar) + 40px)}
+  [data-skin=asturlab] #caption{right:calc(var(--sar) + 44px);width:300px}
+}
+
+/* ============ Sleeve ============ */
+[data-skin=sleeve]{--rest:#77735F;--active:#EFE7D8;--hair:#23253A}
+[data-skin=sleeve][data-palette=bone]{--rest:#857C6C;--active:#14130F;--hair:#D8CDB8}
+[data-skin=sleeve] body{font-family:Hanken,sans-serif}
+@media (orientation:portrait){[data-skin=sleeve]{--inset-t:96}}
+[data-skin=sleeve] .top{top:calc(var(--sat) + 8px);left:calc(var(--sal) + 20px)}
+[data-skin=sleeve] #lenses{display:flex;flex-direction:column;align-items:flex-start}
+[data-skin=sleeve] #lenses button{min-height:44px;justify-content:flex-start;gap:12px;font:300 italic 24px/1 Newsreader,serif}
+[data-skin=sleeve] #lenses .num{display:inline-block;font:400 13px/1 Hanken,sans-serif;width:10px;font-style:normal}
+[data-skin=sleeve] #lenses button[aria-pressed=true]{color:var(--active)}
+[data-skin=sleeve] #status{font:400 15px/28px Hanken,sans-serif;margin-top:6px;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+[data-skin=sleeve] .bottom{bottom:calc(var(--sab) + 10px);left:calc(var(--sal) + 20px);display:flex;flex-direction:column;align-items:flex-start}
+[data-skin=sleeve] .g{display:flex;gap:18px}
+[data-skin=sleeve] .g button,[data-skin=sleeve] .g label{font:400 15px/1 Hanken,sans-serif;min-height:44px;min-width:44px;justify-content:flex-start}
+[data-skin=sleeve] .main button,[data-skin=sleeve] .main label{min-width:44px;justify-content:flex-start}
+[data-skin=sleeve] #playBtn{min-width:46px}
+[data-skin=sleeve] .g [aria-pressed=true],[data-skin=sleeve] #micBtn.on{color:var(--active)}
+[data-skin=sleeve] #micBtn.on::after{content:"";position:absolute;left:0;right:0;bottom:9px;height:1px;background:var(--verm)}
+[data-skin=sleeve] #micBtn .w{display:inline-block}
+[data-skin=sleeve] #caption{left:calc(var(--sal) + 20px);bottom:calc(var(--sab) + 112px);width:min(280px,calc(100vw - 40px));
+  font:300 italic 19px/1.45 Newsreader,serif;color:var(--active);text-shadow:0 0 6px var(--bg),0 0 6px var(--bg)}
+@media (min-width:900px) and (orientation:landscape){
+  [data-skin=sleeve] .top{left:calc(var(--sal) + 32px);top:calc(var(--sat) + 22px)}
+  [data-skin=sleeve] .bottom{left:calc(var(--sal) + 32px);bottom:calc(var(--sab) + 22px)}
+  [data-skin=sleeve] #caption{left:calc(var(--sal) + 32px);bottom:calc(var(--sab) + 120px);width:300px}
 }
 </style>
 </head>
 <body>
 <canvas id="view"></canvas>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><path id="nqp" d="M4 .5L7.5 5 4 9.5 .5 5z"/></defs></svg>
+<div class="margin-rule chrome" aria-hidden="true"></div>
+<div class="limb chrome" aria-hidden="true"><i></i><b></b></div>
 <div class="chrome top">
-  <div id="status">Sound drawing</div>
-  <div id="lenses" role="group" aria-label="Lens">
-    <button data-lens="dawayer" aria-pressed="true"><b>دواير</b><i>Dawayer</i></button>
-    <button data-lens="qalam" aria-pressed="false"><b>قلم</b><i>Qalam</i></button>
-    <button data-lens="daw" aria-pressed="false"><b>ضوء</b><i>Daw'</i></button>
-  </div>
-  <div class="spacer"></div>
+  <nav id="lenses" aria-label="lens">
+    <button data-lens="dawayer" aria-pressed="true"><span class="num">1</span><svg class="index" viewBox="0 0 8 6"><path d="M0 0h8L4 6z" fill="currentColor"/></svg><span class="w" data-k="dawayer"></span><svg class="nq" viewBox="0 0 8 10"><use href="#nqp"/></svg></button>
+    <button data-lens="qalam" aria-pressed="false"><span class="num">2</span><svg class="index" viewBox="0 0 8 6"><path d="M0 0h8L4 6z" fill="currentColor"/></svg><span class="w" data-k="qalam"></span><svg class="nq" viewBox="0 0 8 10"><use href="#nqp"/></svg></button>
+    <button data-lens="daw" aria-pressed="false"><span class="num">3</span><svg class="index" viewBox="0 0 8 6"><path d="M0 0h8L4 6z" fill="currentColor"/></svg><span class="w" data-k="daw"></span><svg class="nq" viewBox="0 0 8 10"><use href="#nqp"/></svg></button>
+  </nav>
+  <div id="status"></div>
 </div>
-<div id="caption" aria-live="polite"><span id="capAr"></span><span id="capEn"></span></div>
+<div id="caption" aria-live="polite"><p id="capText"></p></div>
 <div class="chrome bottom">
-  <button class="btn main" id="micBtn"><span class="dot"></span>Listen</button>
-  <label class="btn">Open<input type="file" id="fileIn" accept="audio/*,.m4a,.wav,.mp3,.aac"></label>
-  <button class="btn" id="playBtn" hidden>Play</button>
-  <button class="btn icon" id="paletteBtn" aria-label="Palette"><svg viewBox="0 0 20 20" width="18" height="18"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2.5a7.5 7.5 0 0 1 0 15z" fill="currentColor"/></svg></button>
-  <button class="btn icon" id="capBtn" aria-pressed="true" aria-label="Captions" title="Captions"><span style="font-size:18px;line-height:1">؟</span></button>
-  <button class="btn icon" id="saveBtn" aria-label="Save the drawing" title="Save the drawing"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9M6 8.5l4 4 4-4M4 15.5h12"/></svg></button>
-  <button class="btn icon" id="clearBtn" aria-label="Clear the paper" title="Clear the paper"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+  <div class="g main">
+    <button id="micBtn"><svg class="nq" viewBox="0 0 8 10"><use href="#nqp"/></svg>
+      <svg class="ring" viewBox="0 0 58 58" aria-hidden="true"><circle cx="29" cy="29" r="27.5"/><circle cx="29" cy="29" r="19.5"/>
+        <g class="ticks"></g><line class="needle" x1="29" y1="29" x2="29" y2="6"/><circle class="hub" cx="29" cy="29" r="2"/></svg>
+      <span class="w" data-k="listen"></span></button>
+    <label class="ctl" id="openBtn"><span class="w" data-k="open"></span><input type="file" id="fileIn" accept="audio/*,.m4a,.wav,.mp3,.aac"></label>
+    <button id="playBtn" class="empty"><span class="w"></span></button>
+    <button id="capBtn" aria-pressed="true"><span class="w" data-k="notes"></span></button>
+  </div>
+  <div class="g aux">
+    <button id="paletteBtn"><span class="w"></span></button>
+    <button id="saveBtn"><span class="w" data-k="save"></span></button>
+    <button id="clearBtn"><span class="w" data-k="clear"></span></button>
+  </div>
 </div>
 <script src="listen.js"></script>
 <script src="lenses.js"></script>

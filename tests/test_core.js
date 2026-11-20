@@ -1,5 +1,5 @@
 // node test_core.js : feature and reference tests with assertions
-const fs = require('fs'), L = require('../src/listen.js');
+const fs = require('fs'), L = require('../listen.js');
 function readWav(p){const b=fs.readFileSync(p);let o=12,sr=0,data=null;while(o<b.length){const id=b.toString('ascii',o,o+4),sz=b.readUInt32LE(o+4);if(id==='fmt ')sr=b.readUInt32LE(o+12);if(id==='data')data=b.subarray(o+8,o+8+sz);o+=8+sz+(sz%2);}const x=new Float32Array(data.length/2);for(let i=0;i<x.length;i++)x[i]=data.readInt16LE(2*i)/32768;return{x,sr};}
 function run(file){const {x,sr}=readWav(file),lis=L.Listener(sr),fr=[];for(let s=0;s+2048<=x.length;s+=1024)fr.push(lis.push(x.subarray(s,s+2048)));return {fr,lis,sr};}
 const med=a=>{a=a.filter(v=>v===v).sort((p,q)=>p-q);return a.length?a[a.length>>1]:NaN;};
@@ -39,3 +39,12 @@ check('speech: no qarar in 30 s', Sp.lis.tonic.lockedCents()===null, `locked ${S
 const tonalSpeech=Sp.fr.filter(f=>f.held).length/Sp.fr.length;
 check('speech: few held notes', tonalSpeech<0.1, (100*tonalSpeech).toFixed(1)+'% of frames held');
 console.log(fails?`\n${fails} FAILED`:'\nALL PASS');
+// 4. hits are confirmed only when no pitch follows: voices make almost none, the drum makes about as many as it plays
+{
+  const T2=JSON.parse(fs.readFileSync('scene_truth.json')); const R=run('scene.wav'); const at2=t=>(T2.segments.find(s=>t>=s.t0&&t<s.t1)||{}).src;
+  const voiceHits=R.fr.filter(f=>f.hit&&['voiceA','voiceB','oud','ney'].includes(at2(f.hit.t+1024/R.sr))).length;
+  const drumHits=R.fr.filter(f=>f.hit&&at2(f.hit.t+1024/R.sr)==='drum').length;
+  check('singing and plucking make (almost) no hits', voiceHits<=2, voiceHits+' hits');
+  check('drum hits are confirmed', drumHits>=0.8*T2.drum_hits.length, drumHits+' of '+T2.drum_hits.length);
+  console.log(fails?`${fails} FAILED`:'ALL PASS (with hits)');
+}

@@ -1,0 +1,5 @@
+tests/*.wav
+tests/shots/
+tests/motion/
+tests/skins/
+node_modules/

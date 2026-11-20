@@ -135,12 +135,16 @@
      brightness, breath and vowel are fixed axes (never re-fitted), so similar sounds always look similar. */
   function Listener(sr) {
     var an = Analyser(sr), fps = sr / an.hop, tonic = Tonic(fps);
-    var st = { t: 0, n: 0, loud: -40, noise: null, fluxHist: [], lastOnset: -10, kind: 'quiet', kindN: 0, pending: null, pendingN: 0,
+    var st = { t: 0, n: 0, loud: -40, noise: null, fluxHist: [], lastOnset: -10, kind: 'quiet', kindN: 0, pending: null, pendingN: 0, pendingHit: null, deaf: -1,
       f0Hist: [], held: { c: null, n: 0 }, lastTone: -10, lastNote: null, newQarar: false };
     function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+    function tonalPeek(f) { return f.harm > 0.62 && f.f0 > 62 && f.f0 < 1100; }
+    function brightOf(c) { return clamp((Math.log2(Math.max(100, c)) - Math.log2(250)) / (Math.log2(4000) - Math.log2(250))); }
     function median(a) { var b = a.slice().sort(function (p, q) { return p - q; }); return b[b.length >> 1]; }
     return {
       fps: fps, hop: an.hop, N: an.N, tonic: tonic, state: st,
+      // the audio skipped (blocks lost under load): a discontinuity is not an attack, so drop the pending hit and pause onsets briefly
+      glitch: function () { st.pendingHit = null; st.deaf = st.t + 0.1; },
       push: function (x) {
         var f = an.frame(x), t = st.n / fps; st.n++; st.t = t;
         if (st.noise === null) st.noise = f.db;
@@ -151,8 +155,18 @@
         st.fluxHist.push(f.flux); if (st.fluxHist.length > Math.round(fps * 1.5)) st.fluxHist.shift();
         var fm = median(st.fluxHist), mad = median(st.fluxHist.map(function (v) { return Math.abs(v - fm); })) + 1e-6;
         var strength = (f.flux - fm) / (mad * 1.4826);
-        var onset = active && strength > 4 && t - st.lastOnset > 0.07;
+        var onset = active && strength > 4 && t - st.lastOnset > 0.07 && t > st.deaf;
         if (onset) st.lastOnset = t;
+        // a hit is an attack that no pitch follows within about 0.1 s (a singer's consonant is not a drum)
+        // judged over the next 8 frames (about 0.17 s). A hit attacks at once (rises under 4 dB after the onset)
+        // and is either unpitched or dies fast. A voice swells in; an oud pluck attacks at once but keeps ringing.
+        var hit = null;
+        if (st.pendingHit) {
+          var ph = st.pendingHit; ph.n++; ph.peak = Math.max(ph.peak, f.db);
+          if (tonalPeek(f)) ph.kept++;
+          if (ph.n >= 8) { if (ph.peak - ph.db <= 4 && (ph.kept < 6 || ph.peak - f.db >= 12)) hit = ph; st.pendingHit = null; }
+        }
+        if (onset && !st.pendingHit) st.pendingHit = { t: t, strength: Math.max(0, strength), brightness: brightOf(f.centroid), db: f.db, peak: f.db, n: 0, kept: 0 };
         // raw kind for this frame
         var tonalRaw = active && f.harm > 0.62 && f.f0 > 62 && f.f0 < 1100;
         var raw = !active ? 'quiet' : tonalRaw ? 'tone' : (t - st.lastOnset < 0.1 ? 'hit' : (f.hiFlat > 0.3 || f.flatness > 0.2 ? 'breath' : 'tone'));
@@ -186,7 +200,7 @@
         var brightness = clamp((Math.log2(Math.max(100, f.centroid)) - Math.log2(250)) / (Math.log2(4000) - Math.log2(250)));
         var breath = clamp(0.65 * clamp((f.hiFlat - 0.05) / 0.45) + 0.35 * clamp((0.9 - f.harm) / 0.5));
         return {
-          t: t, db: f.db, level: clamp((f.db - (st.loud - 42)) / 42), active: active, kind: st.kind, onset: onset, strength: Math.max(0, strength),
+          t: t, db: f.db, level: clamp((f.db - (st.loud - 42)) / 42), active: active, kind: st.kind, onset: onset, hit: hit, strength: Math.max(0, strength),
           f0: f0, cents: cents, conf: tonalRaw ? clamp((f.harm - 0.55) / 0.4) : 0, held: held,
           centroid: f.centroid, brightness: brightness, breath: breath, vowel: Math.max(0, Math.min(1, (Math.log10(f.front / (1 - f.front + 1e-9)) + 3) / 3)),
           harmonics: f.harmonics, bands: f.bands, qarar: qarar, qararChanged: qarar !== before

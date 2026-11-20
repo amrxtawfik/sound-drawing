@@ -1,6 +1,6 @@
 // headless Chrome with a fake microphone playing scene.wav; screenshots of each lens and palette
 const { chromium } = require('playwright');
-const scene = process.argv[2] || '/home/claude/sound-drawing-v2/test/scene.wav';
+const scene = process.argv[2] || require('path').join(__dirname, 'scene.wav');
 const dev = process.argv[3] || 'iphone';
 const VP = dev === 'ipad' ? { width: 1180, height: 820 } : { width: 390, height: 844 };
 (async () => {
